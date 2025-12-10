@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Code2, Palette, Zap, Heart } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import Timeline from '@/components/Timeline';
-import { education } from '@shared/schema';
+import { useEffect, useState } from "react";
+import { Code2, Palette, Zap, Heart, Link2, Upload } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Timeline from "@/components/Timeline";
+import { education } from "@shared/schema";
 
 const highlights = [
   {
@@ -36,15 +38,35 @@ const highlights = [
 ];
 
 const PHOTO_KEY = "about-profile-photo";
+const DEFAULT_PHOTO =
+  "https://placehold.co/600x600/0f172a/94a3b8.png?text=Upload+your+photo";
 
 export default function About() {
-  const [photoSrc, setPhotoSrc] = useState<string>("https://placehold.co/600x600?text=Your+Photo");
+  const [photoSrc, setPhotoSrc] = useState<string>(DEFAULT_PHOTO);
+  const [photoUrlInput, setPhotoUrlInput] = useState<string>("");
 
   // Load persisted photo from localStorage
   useEffect(() => {
     const stored = localStorage.getItem(PHOTO_KEY);
     if (stored) setPhotoSrc(stored);
   }, []);
+
+  const persistPhoto = (value: string) => {
+    setPhotoSrc(value);
+    localStorage.setItem(PHOTO_KEY, value);
+  };
+
+  const handleFile = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result;
+      if (typeof result === "string") {
+        persistPhoto(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="min-h-screen pt-20 pb-16" data-testid="page-about">
@@ -67,54 +89,72 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
             <div className="space-y-6">
               <div className="relative">
-                <div className="aspect-square max-w-md mx-auto lg:mx-0 rounded-lg bg-card border border-border/50 overflow-hidden relative">
+                <div
+                  className="aspect-square max-w-md mx-auto lg:mx-0 rounded-lg bg-card border border-border/50 overflow-hidden relative group"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleFile(e.dataTransfer.files?.[0]);
+                  }}
+                >
                   <div
-                    className="absolute inset-0 bg-cover bg-center"
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.01]"
                     style={{
                       backgroundImage: `url('${photoSrc}')`,
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-3 flex flex-col gap-2 items-center px-4">
                     <label className="w-full max-w-xs cursor-pointer">
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              const result = ev.target?.result;
-                              if (typeof result === "string") {
-                                setPhotoSrc(result);
-                                localStorage.setItem(PHOTO_KEY, result);
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
+                        onChange={(e) => handleFile(e.target.files?.[0])}
                       />
-                      <div className="w-full text-xs text-center px-3 py-2 rounded-md bg-background/90 border border-border text-foreground hover:border-neon-cyan transition-colors">
-                        Choose image from your system
+                      <div className="w-full text-xs text-center px-3 py-2 rounded-md bg-background/90 border border-border text-foreground hover:border-neon-cyan transition-colors flex items-center justify-center gap-2">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Choose or drop an image</span>
                       </div>
                     </label>
+
+                    <div className="w-full max-w-xs flex items-center gap-2">
+                      <Input
+                        value={photoUrlInput}
+                        placeholder="Paste image URL"
+                        onChange={(e) => setPhotoUrlInput(e.target.value)}
+                        className="text-xs"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="text-xs flex items-center gap-1"
+                        onClick={() => {
+                          if (!photoUrlInput.trim()) return;
+                          persistPhoto(photoUrlInput.trim());
+                          setPhotoUrlInput("");
+                        }}
+                      >
+                        <Link2 className="w-3.5 h-3.5" />
+                        Use
+                      </Button>
+                    </div>
+
                     <button
                       type="button"
                       className="w-full max-w-xs text-xs text-center px-3 py-2 rounded-md bg-background/70 border border-border text-muted-foreground hover:text-foreground hover:border-destructive transition-colors"
-                      onClick={() =>
-                        {
-                          setPhotoSrc("https://placehold.co/600x600?text=Your+Photo");
-                          localStorage.removeItem(PHOTO_KEY);
-                        }
-                      }
+                      onClick={() => {
+                        setPhotoSrc(DEFAULT_PHOTO);
+                        localStorage.removeItem(PHOTO_KEY);
+                        setPhotoUrlInput("");
+                      }}
                     >
                       Remove image
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="absolute -bottom-4 -right-4 w-28 h-28 rounded-lg bg-neon-pink/10 border border-neon-pink/30 flex items-center justify-center">
                   <span className="font-mono text-neon-pink text-sm text-center leading-tight">
                     Fresher<br />Open to roles
